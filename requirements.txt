@@ -2,4 +2,3 @@ os
 io
 pandas
 streamlit
-plotly
