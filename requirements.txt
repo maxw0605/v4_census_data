@@ -1,5 +1,7 @@
-streamlit
+os
+io
 pandas
+streamlit
 plotly
 openpyxl
 xlsxwriter
