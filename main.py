@@ -222,13 +222,13 @@ def get_aggregated_stat_from_states(states, file_name, stat_name, method="sum"):
 # Metrics
 metrics_by_category = {
     "Demographic Characteristics": {
-        "file": "Demographic characteristics.csv",
+        "file": "Demographic Characteristics.csv",
         "metrics": [
             ("Total Population", "Total population", "sum", "units", True)
         ]
     },
     "Socioeconomic Characteristics": {
-        "file": "Socioeconomic characteristics.csv",
+        "file": "Socioeconomic Characteristics.csv",
         "metrics": [
             ("Average Income per Year", "Average income", "average", "USD", True),
             ("Median Household Income per Year", "Median household income", "median", "USD", True),
