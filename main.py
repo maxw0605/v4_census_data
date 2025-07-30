@@ -268,370 +268,370 @@ metrics_by_category = {
     },
 }
 
-try: 
-    # Metrics bestimmen
-    for category_label, config in metrics_by_category.items():
-        csv_file = config["file"]
-        metric_list = config["metrics"]
+#try: 
+# Metrics bestimmen
+for category_label, config in metrics_by_category.items():
+    csv_file = config["file"]
+    metric_list = config["metrics"]
 
-        # Aggregierte Werte berechnen
-        values = [
-            get_aggregated_stat_from_states(
-                selected_states,
-                csv_file,
-                metric_name,
-                method
-            )
-            for _, metric_name, method, _, show in metric_list if show
-        ]
-
-        # Section-Überschrift
-        st.subheader(f"{category_label}")
-
-        visible_metrics = [m for m in metric_list if m[4]]
-        cols = st.columns(len(visible_metrics))
-
-        # Dynamische Spaltenanzeige
-        for col, (label, _, _, unit, _), value in zip(cols, visible_metrics, values):
-            if value is None:
-                col.metric(label, "N/A")
-            else:
-                if unit == "%" or unit == "percent":
-                    formatted = f"{value:.1f} %"
-                elif unit == "USD":
-                    formatted = f"$ {value:,.0f}"
-                elif unit == "year":
-                    formatted = f"{int(value)}"
-                elif unit == "units":
-                    formatted = f"{value:,.0f}"
-                elif unit == "units_1dec":
-                    formatted = f"{value:,.1f}"
-                elif unit == "units_2dec":
-                    formatted = f"{value:,.2f}"
-                else:
-                    formatted = f"{value:,.1f} {unit}"
-
-                col.metric(label, formatted)
-
-
-    # --- data by states
-    def build_data_by_states_dataframe(states, metrics_by_category):
-        """
-        Erstellt ein DataFrame mit allen Metriken für alle ausgewählten Staaten.
-
-        Returns:
-            pd.DataFrame: Zeilen = Metriken, Spalten = Bundesstaaten
-        """
-        data = {}
-
-        for state in states:
-            state_values = {}
-            for category_config in metrics_by_category.values():
-                file = category_config["file"]
-                for label, metric_name, _, _, _ in category_config["metrics"]:
-                    file_path = os.path.join(base_path, state, file)
-                    if os.path.exists(file_path):
-                        try:
-                            df = pd.read_csv(file_path)
-                            df["Name"] = df["Name"].astype(str).str.strip()
-                            row = df[df["Name"] == metric_name]
-                            if not row.empty:
-                                val = str(row["Value"].values[0]).replace(",", "")
-                                if val:
-                                    state_values[label] = float(val)
-                        except Exception as e:
-                            print(f"Fehler in {state} – {label}: {e}")
-            data[state] = state_values
-
-        df_out = pd.DataFrame(data)
-        df_out = df_out.T
-        return df_out
-
-
-
-    # --- Data download
-    def convert_df_to_excel(df):
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df.to_excel(writer, sheet_name='Data by States')
-        return output.getvalue()
-
-    data_by_states = build_data_by_states_dataframe(selected_states, metrics_by_category)
-
-    # Excel-Daten generieren
-    excel_bytes = convert_df_to_excel(data_by_states)
-
-    # Download-Button im Dashboard anzeigen
-    st.download_button(
-        label="Download data as Excel",
-        data=excel_bytes,
-        file_name="data_by_states.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
-
-
-    # --- data for a metric for states
-    # Alle Metriken in ein Dictionary extrahieren
-    metric_options = []
-    metric_lookup = {}  # Label → (file, stat_name, method)
-
-    for category_config in metrics_by_category.values():
-        file = category_config["file"]
-        for label, stat_name, method, _, show_column in category_config["metrics"]:
-            if show_column:
-                metric_options.append(label)
-                metric_lookup[label] = (file, stat_name, method)
-
-    def data_states(metric, states):
-        states_data = []
-        for state in states:
-            file, stat_name, method = metric_lookup[metric]
-            value = get_aggregated_stat_from_states([state], file, stat_name, method)
-            states_data.append({
-                "state": state,
-                "abbr": state_abbr[state],  # ← wichtig!
-                "value": value
-            })
-        return states_data
-
-
-
-    # --- Boxplots
-
-    # Metriken für die Boxplots
-    box_metrics = ["Average Housing Value", "Total Housing Units", "Median Year Structure Built"]
-
-    # Daten vorbereiten
-    df_boxes = pd.DataFrame()
-    for metric in box_metrics:
-        data = data_states(metric, selected_states)
-        df = pd.DataFrame(data)
-        df["metric"] = metric
-        df_boxes = pd.concat([df_boxes, df], ignore_index=True)
-
-    # Subplots vorbereiten
-    fig_multi = make_subplots(
-        rows=1, cols=len(box_metrics),
-        subplot_titles=box_metrics,
-        shared_yaxes=False
-    )
-
-    # Pro Metrik ein Boxplot erzeugen
-    for i, metric in enumerate(box_metrics, start=1):
-        df_metric = df_boxes[df_boxes["metric"] == metric]
-        fig_multi.add_trace(
-            go.Box(
-                y=df_metric["value"],
-                boxpoints="all",
-                jitter=0.4,
-                pointpos=0,
-                name=metric,
-                marker_color="steelblue",
-                hovertext=df_metric["state"],
-                hoverinfo="text+y"
-            ),
-            row=1, col=i
+    # Aggregierte Werte berechnen
+    values = [
+        get_aggregated_stat_from_states(
+            selected_states,
+            csv_file,
+            metric_name,
+            method
         )
-
-    # Layout anpassen
-    fig_multi.update_layout(
-        font=common_font,
-        height=700,
-        showlegend=False)
-
-    for i in range(1, len(box_metrics) + 1):
-        fig_multi.update_xaxes(tickfont=common_font, title_font=common_font, row=1, col=i)
-        fig_multi.update_yaxes(tickfont=common_font, title_font=common_font, row=1, col=i)
-
-
-    st.subheader(f"Distribution of selected Metrics across Selected States")
-    st.plotly_chart(fig_multi, use_container_width=True)
-
-
-
-    # --- Boxplot individuell
-    col1, col2, col3 = st.columns([1, 1, 1])  # Verhältnis der Spaltenbreiten
-    with col2:
-        selected_box_metric = st.selectbox("Choose a Metric", metric_options)
-
-    df_box_go = pd.DataFrame(data_states(selected_box_metric, selected_states))
-    df_box_go = df_box_go.dropna(subset=["value"])
-
-    fig_go_box = go.Figure()
-
-    fig_go_box.add_trace(go.Box(
-        y=df_box_go["value"],
-        boxpoints="all",
-        jitter=0.4,  # Punkte leicht verteilen
-        pointpos=0,  # Punkte zentriert auf Box
-        marker_color="steelblue",
-        name=selected_box_metric,
-        hovertext=df_box_go["state"],
-        hoverinfo="text+y"))
-
-
-
-    fig_go_box.update_layout(
-        title=f"Distribution of {selected_box_metric} across Selected States",
-        yaxis_title=selected_box_metric,
-        font=common_font,
-        height=600,
-        showlegend=False)
-
-    fig_go_box.update_layout(
-        font=common_font,
-        #title_font=common_font,
-        xaxis_title_font=common_font,
-        yaxis_title_font=common_font,
-        xaxis=dict(tickfont=common_font),
-        yaxis=dict(tickfont=common_font))
-
-    col1, col2, col3 = st.columns([1, 1, 1])  # Verhältnis der Spaltenbreiten
-
-    with col2:
-        st.plotly_chart(fig_go_box, use_container_width=True)
-
-
-
-    # --- load Table with data by state
-    def aggregate_named_table_by_state(states, filename, method="average"):
-        """
-        Aggregiert alle 'Name'–'Value'-Paare aus einer CSV über mehrere Staaten hinweg.
-
-        Args:
-            states (list): Liste von Bundesstaaten
-            filename (str): CSV-Dateiname
-            method (str): Aggregationsmethode: 'sum' oder 'average'
-
-        Returns:
-            pd.DataFrame mit Spalten 'Name', 'Value'
-        """
-        dfs = []
-        for state in states:
-            path = os.path.join(base_path, state, filename)
-            if os.path.exists(path):
-                try:
-                    df = pd.read_csv(path)
-                    dfs.append(df[["Name", "Value"]])
-                except Exception as e:
-                    print(f"Fehler bei {state}: {e}")
-        if not dfs:
-            return None
-        df_all = pd.concat(dfs)
-        df_all["Name"] = df_all["Name"].str.replace("Consumer expenditures per household on ", "", regex=False).str.strip()
-
-        if method == "average":
-            df_agg = df_all.groupby("Name", as_index=False, sort=False)["Value"].mean()
-        elif method == "sum":
-            df_agg = df_all.groupby("Name", as_index=False, sort=False)["Value"].sum()
-        else:
-            raise ValueError("Unknown method: use 'sum' or 'average'.")
-        
-        df_agg["Reihenfolge"] = range(len(df_agg))    
-        return df_agg
-
-
-    main_categories = [
-        "Alcoholic beverages", "Apparel & services", "Dining out (Food away from home)", "Education", 
-        "Entertainment / Recreation", "Food consumed at home", "Health Care", "Household Services",
-        "Housing", "Life and other insurance", "Pensions and social security", "Personal Care Products and Services", 
-        "Local Transportation", "Travel", "Child Care", "Day Care/Nursery & Preschools", "Babysitting/Child Care in Own/Other Home"
+        for _, metric_name, method, _, show in metric_list if show
     ]
 
-    df_consumer_expenditures = aggregate_named_table_by_state(selected_states, "Consumer Spending.csv", method="average")
+    # Section-Überschrift
+    st.subheader(f"{category_label}")
 
-    df_consumer_expenditures["Name"] = df_consumer_expenditures["Name"].str.strip()
-    df_consumer_expenditures = df_consumer_expenditures[df_consumer_expenditures["Name"] != "Total consumer expenditures per household"]
+    visible_metrics = [m for m in metric_list if m[4]]
+    cols = st.columns(len(visible_metrics))
 
-    # Kategoriezuweisung & Formatierung
-    df_consumer_expenditures["Kategorie_Art"] = df_consumer_expenditures["Name"].apply(lambda x: "Oberkategorie" if x in main_categories else "Detail")
-    df_consumer_expenditures["Reihenfolge"] = range(len(df_consumer_expenditures))
-    df_consumer_expenditures = df_consumer_expenditures.sort_values(by="Reihenfolge")
-    df_consumer_expenditures["Name_fett"] = df_consumer_expenditures.apply(lambda row: f"<b>{row['Name']}</b>" if row["Kategorie_Art"] == "Oberkategorie" else row["Name"],axis=1)
+    # Dynamische Spaltenanzeige
+    for col, (label, _, _, unit, _), value in zip(cols, visible_metrics, values):
+        if value is None:
+            col.metric(label, "N/A")
+        else:
+            if unit == "%" or unit == "percent":
+                formatted = f"{value:.1f} %"
+            elif unit == "USD":
+                formatted = f"$ {value:,.0f}"
+            elif unit == "year":
+                formatted = f"{int(value)}"
+            elif unit == "units":
+                formatted = f"{value:,.0f}"
+            elif unit == "units_1dec":
+                formatted = f"{value:,.1f}"
+            elif unit == "units_2dec":
+                formatted = f"{value:,.2f}"
+            else:
+                formatted = f"{value:,.1f} {unit}"
 
-    # Balkendiagramm
-    fig = px.bar(
-        df_consumer_expenditures,
-        x="Value",
-        y="Name_fett",
-        labels={"Value": "Value [US-$/year]", "Name_fett": "Consumer Expenditure"},
-        orientation="h",
-        color="Kategorie_Art",
-        color_discrete_map={"Oberkategorie": "darkblue", "Detail": "lightblue"}
-    )
+            col.metric(label, formatted)
 
-    fig.update_layout(
-        yaxis=dict(
-            categoryorder="array",
-            categoryarray=df_consumer_expenditures["Name_fett"].tolist()[::-1]
+
+# --- data by states
+def build_data_by_states_dataframe(states, metrics_by_category):
+    """
+    Erstellt ein DataFrame mit allen Metriken für alle ausgewählten Staaten.
+
+    Returns:
+        pd.DataFrame: Zeilen = Metriken, Spalten = Bundesstaaten
+    """
+    data = {}
+
+    for state in states:
+        state_values = {}
+        for category_config in metrics_by_category.values():
+            file = category_config["file"]
+            for label, metric_name, _, _, _ in category_config["metrics"]:
+                file_path = os.path.join(base_path, state, file)
+                if os.path.exists(file_path):
+                    try:
+                        df = pd.read_csv(file_path)
+                        df["Name"] = df["Name"].astype(str).str.strip()
+                        row = df[df["Name"] == metric_name]
+                        if not row.empty:
+                            val = str(row["Value"].values[0]).replace(",", "")
+                            if val:
+                                state_values[label] = float(val)
+                    except Exception as e:
+                        print(f"Fehler in {state} – {label}: {e}")
+        data[state] = state_values
+
+    df_out = pd.DataFrame(data)
+    df_out = df_out.T
+    return df_out
+
+
+
+# --- Data download
+def convert_df_to_excel(df):
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name='Data by States')
+    return output.getvalue()
+
+data_by_states = build_data_by_states_dataframe(selected_states, metrics_by_category)
+
+# Excel-Daten generieren
+excel_bytes = convert_df_to_excel(data_by_states)
+
+# Download-Button im Dashboard anzeigen
+st.download_button(
+    label="Download data as Excel",
+    data=excel_bytes,
+    file_name="data_by_states.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+
+
+
+# --- data for a metric for states
+# Alle Metriken in ein Dictionary extrahieren
+metric_options = []
+metric_lookup = {}  # Label → (file, stat_name, method)
+
+for category_config in metrics_by_category.values():
+    file = category_config["file"]
+    for label, stat_name, method, _, show_column in category_config["metrics"]:
+        if show_column:
+            metric_options.append(label)
+            metric_lookup[label] = (file, stat_name, method)
+
+def data_states(metric, states):
+    states_data = []
+    for state in states:
+        file, stat_name, method = metric_lookup[metric]
+        value = get_aggregated_stat_from_states([state], file, stat_name, method)
+        states_data.append({
+            "state": state,
+            "abbr": state_abbr[state],  # ← wichtig!
+            "value": value
+        })
+    return states_data
+
+
+
+# --- Boxplots
+
+# Metriken für die Boxplots
+box_metrics = ["Average Housing Value", "Total Housing Units", "Median Year Structure Built"]
+
+# Daten vorbereiten
+df_boxes = pd.DataFrame()
+for metric in box_metrics:
+    data = data_states(metric, selected_states)
+    df = pd.DataFrame(data)
+    df["metric"] = metric
+    df_boxes = pd.concat([df_boxes, df], ignore_index=True)
+
+# Subplots vorbereiten
+fig_multi = make_subplots(
+    rows=1, cols=len(box_metrics),
+    subplot_titles=box_metrics,
+    shared_yaxes=False
+)
+
+# Pro Metrik ein Boxplot erzeugen
+for i, metric in enumerate(box_metrics, start=1):
+    df_metric = df_boxes[df_boxes["metric"] == metric]
+    fig_multi.add_trace(
+        go.Box(
+            y=df_metric["value"],
+            boxpoints="all",
+            jitter=0.4,
+            pointpos=0,
+            name=metric,
+            marker_color="steelblue",
+            hovertext=df_metric["state"],
+            hoverinfo="text+y"
         ),
-        showlegend=False,
-        height=20 * len(df_consumer_expenditures)
+        row=1, col=i
     )
 
-    fig.update_layout(
-        font=common_font,
-        #title_font=common_font,
-        xaxis_title_font=common_font,
-        yaxis_title_font=common_font,
-        xaxis=dict(tickfont=common_font),
-        yaxis=dict(tickfont=common_font))
+# Layout anpassen
+fig_multi.update_layout(
+    font=common_font,
+    height=700,
+    showlegend=False)
 
-    # Diagramm anzeigen
-    st.subheader(f"Overview of Consumer Expenditures in Selected States")
-    st.plotly_chart(fig, use_container_width=True)
+for i in range(1, len(box_metrics) + 1):
+    fig_multi.update_xaxes(tickfont=common_font, title_font=common_font, row=1, col=i)
+    fig_multi.update_yaxes(tickfont=common_font, title_font=common_font, row=1, col=i)
 
 
-
-    # --- Heatmap USA (unabhängig von Auswahl)
-    st.subheader("Heatmap USA")
-
-    # Dropdown zur Auswahl der Metrik
-    selected_metric_label = st.selectbox("Select a metric for the heatmap", metric_options)
-
-    df_heatmap = pd.DataFrame(data_states(selected_metric_label, all_states))
-
-    # Karte zeichnen
-    fig_heatmap = px.choropleth(
-        df_heatmap,
-        locations="abbr",
-        locationmode="USA-states",
-        color="value",
-        scope="usa",
-        hover_name="state",
-        hover_data={"abbr": False, "value": True},
-        color_continuous_scale="Turbo",
-        labels={"value": ""}
-    )
-
-
-    fig_heatmap.update_layout(
-        geo=dict(showlakes=False, lakecolor="lightblue"),
-        dragmode=False,
-        uirevision="static",
-        coloraxis_showscale=True,
-        margin=dict(l=0, r=0, t=40, b=0),
-        height=500
-    )
-
-    st.plotly_chart(fig_heatmap, use_container_width=True)
+st.subheader(f"Distribution of selected Metrics across Selected States")
+st.plotly_chart(fig_multi, use_container_width=True)
 
 
 
-    # --- Textfeld
-    st.markdown("<p style='font-size: 0.8rem; color: gray;'>"
-                "<br>"
-                "Sources: <br>" 
-                "<br>"
-                "U.S. Census Bureau, available online at: <a href='https://cbb.census.gov/' target='_blank'>https://cbb.census.gov/</a>.<br>"
-                "<br>"
-                "Demographic Characteristics: 2023 American Community Survey 5-year Data Profile.<br>"
-                "Socioeconomic Characteristics: 2023 American Community Survey 5-year Data Profile.<br>"
-                "Housing Characteristics: 2023 American Community Survey 5-year Data Profile.<br>"
-                "Building Permits: 2023 Building Permits Survey.<br>"
-                "Consumer Spending: 2024 Esri Consumer Spending data."
-                "</p>", unsafe_allow_html=True)
+# --- Boxplot individuell
+col1, col2, col3 = st.columns([1, 1, 1])  # Verhältnis der Spaltenbreiten
+with col2:
+    selected_box_metric = st.selectbox("Choose a Metric", metric_options)
 
-except KeyError:
-    st.write("")
+df_box_go = pd.DataFrame(data_states(selected_box_metric, selected_states))
+df_box_go = df_box_go.dropna(subset=["value"])
+
+fig_go_box = go.Figure()
+
+fig_go_box.add_trace(go.Box(
+    y=df_box_go["value"],
+    boxpoints="all",
+    jitter=0.4,  # Punkte leicht verteilen
+    pointpos=0,  # Punkte zentriert auf Box
+    marker_color="steelblue",
+    name=selected_box_metric,
+    hovertext=df_box_go["state"],
+    hoverinfo="text+y"))
+
+
+
+fig_go_box.update_layout(
+    title=f"Distribution of {selected_box_metric} across Selected States",
+    yaxis_title=selected_box_metric,
+    font=common_font,
+    height=600,
+    showlegend=False)
+
+fig_go_box.update_layout(
+    font=common_font,
+    #title_font=common_font,
+    xaxis_title_font=common_font,
+    yaxis_title_font=common_font,
+    xaxis=dict(tickfont=common_font),
+    yaxis=dict(tickfont=common_font))
+
+col1, col2, col3 = st.columns([1, 1, 1])  # Verhältnis der Spaltenbreiten
+
+with col2:
+    st.plotly_chart(fig_go_box, use_container_width=True)
+
+
+
+# --- load Table with data by state
+def aggregate_named_table_by_state(states, filename, method="average"):
+    """
+    Aggregiert alle 'Name'–'Value'-Paare aus einer CSV über mehrere Staaten hinweg.
+
+    Args:
+        states (list): Liste von Bundesstaaten
+        filename (str): CSV-Dateiname
+        method (str): Aggregationsmethode: 'sum' oder 'average'
+
+    Returns:
+        pd.DataFrame mit Spalten 'Name', 'Value'
+    """
+    dfs = []
+    for state in states:
+        path = os.path.join(base_path, state, filename)
+        if os.path.exists(path):
+            try:
+                df = pd.read_csv(path)
+                dfs.append(df[["Name", "Value"]])
+            except Exception as e:
+                print(f"Fehler bei {state}: {e}")
+    if not dfs:
+        return None
+    df_all = pd.concat(dfs)
+    df_all["Name"] = df_all["Name"].str.replace("Consumer expenditures per household on ", "", regex=False).str.strip()
+
+    if method == "average":
+        df_agg = df_all.groupby("Name", as_index=False, sort=False)["Value"].mean()
+    elif method == "sum":
+        df_agg = df_all.groupby("Name", as_index=False, sort=False)["Value"].sum()
+    else:
+        raise ValueError("Unknown method: use 'sum' or 'average'.")
+    
+    df_agg["Reihenfolge"] = range(len(df_agg))    
+    return df_agg
+
+
+main_categories = [
+    "Alcoholic beverages", "Apparel & services", "Dining out (Food away from home)", "Education", 
+    "Entertainment / Recreation", "Food consumed at home", "Health Care", "Household Services",
+    "Housing", "Life and other insurance", "Pensions and social security", "Personal Care Products and Services", 
+    "Local Transportation", "Travel", "Child Care", "Day Care/Nursery & Preschools", "Babysitting/Child Care in Own/Other Home"
+]
+
+df_consumer_expenditures = aggregate_named_table_by_state(selected_states, "Consumer Spending.csv", method="average")
+
+df_consumer_expenditures["Name"] = df_consumer_expenditures["Name"].str.strip()
+df_consumer_expenditures = df_consumer_expenditures[df_consumer_expenditures["Name"] != "Total consumer expenditures per household"]
+
+# Kategoriezuweisung & Formatierung
+df_consumer_expenditures["Kategorie_Art"] = df_consumer_expenditures["Name"].apply(lambda x: "Oberkategorie" if x in main_categories else "Detail")
+df_consumer_expenditures["Reihenfolge"] = range(len(df_consumer_expenditures))
+df_consumer_expenditures = df_consumer_expenditures.sort_values(by="Reihenfolge")
+df_consumer_expenditures["Name_fett"] = df_consumer_expenditures.apply(lambda row: f"<b>{row['Name']}</b>" if row["Kategorie_Art"] == "Oberkategorie" else row["Name"],axis=1)
+
+# Balkendiagramm
+fig = px.bar(
+    df_consumer_expenditures,
+    x="Value",
+    y="Name_fett",
+    labels={"Value": "Value [US-$/year]", "Name_fett": "Consumer Expenditure"},
+    orientation="h",
+    color="Kategorie_Art",
+    color_discrete_map={"Oberkategorie": "darkblue", "Detail": "lightblue"}
+)
+
+fig.update_layout(
+    yaxis=dict(
+        categoryorder="array",
+        categoryarray=df_consumer_expenditures["Name_fett"].tolist()[::-1]
+    ),
+    showlegend=False,
+    height=20 * len(df_consumer_expenditures)
+)
+
+fig.update_layout(
+    font=common_font,
+    #title_font=common_font,
+    xaxis_title_font=common_font,
+    yaxis_title_font=common_font,
+    xaxis=dict(tickfont=common_font),
+    yaxis=dict(tickfont=common_font))
+
+# Diagramm anzeigen
+st.subheader(f"Overview of Consumer Expenditures in Selected States")
+st.plotly_chart(fig, use_container_width=True)
+
+
+
+# --- Heatmap USA (unabhängig von Auswahl)
+st.subheader("Heatmap USA")
+
+# Dropdown zur Auswahl der Metrik
+selected_metric_label = st.selectbox("Select a metric for the heatmap", metric_options)
+
+df_heatmap = pd.DataFrame(data_states(selected_metric_label, all_states))
+
+# Karte zeichnen
+fig_heatmap = px.choropleth(
+    df_heatmap,
+    locations="abbr",
+    locationmode="USA-states",
+    color="value",
+    scope="usa",
+    hover_name="state",
+    hover_data={"abbr": False, "value": True},
+    color_continuous_scale="Turbo",
+    labels={"value": ""}
+)
+
+
+fig_heatmap.update_layout(
+    geo=dict(showlakes=False, lakecolor="lightblue"),
+    dragmode=False,
+    uirevision="static",
+    coloraxis_showscale=True,
+    margin=dict(l=0, r=0, t=40, b=0),
+    height=500
+)
+
+st.plotly_chart(fig_heatmap, use_container_width=True)
+
+
+
+# --- Textfeld
+st.markdown("<p style='font-size: 0.8rem; color: gray;'>"
+            "<br>"
+            "Sources: <br>" 
+            "<br>"
+            "U.S. Census Bureau, available online at: <a href='https://cbb.census.gov/' target='_blank'>https://cbb.census.gov/</a>.<br>"
+            "<br>"
+            "Demographic Characteristics: 2023 American Community Survey 5-year Data Profile.<br>"
+            "Socioeconomic Characteristics: 2023 American Community Survey 5-year Data Profile.<br>"
+            "Housing Characteristics: 2023 American Community Survey 5-year Data Profile.<br>"
+            "Building Permits: 2023 Building Permits Survey.<br>"
+            "Consumer Spending: 2024 Esri Consumer Spending data."
+            "</p>", unsafe_allow_html=True)
+
+#except KeyError:
+#    st.write("")
