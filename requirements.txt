@@ -1,4 +1,4 @@
-os
-io
-pandas
 streamlit
+pandas
+plotly
+openpyxl
