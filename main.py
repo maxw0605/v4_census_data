@@ -19,13 +19,8 @@ common_font = dict(family="Arial", size=12, color="black")
 
 # --- Definitions
 # Path
-user_dir = os.path.expanduser("~")
-shared_subpath = os.path.join("OneDrive - FH Muenster","- Masterstudium (Gebäudetechnik)","3. Semester","- Masterarbeit","Diagramme und Abbildungen","Daten", "Census data")
-base_path = os.path.join(user_dir, shared_subpath)
-
-user_dir = os.path.expanduser("~")
-frost_subpath = os.path.join("OneDrive - FH Muenster","- Masterstudium (Gebäudetechnik)","3. Semester","- Masterarbeit","Diagramme und Abbildungen","Daten", "us_states_frost_percentage_all_days.xlsx")
-frost_path = os.path.join(user_dir, frost_subpath)
+base_path = "data"
+frost_path = "us_states_frost_percentage_all_days.xlsx"
 
 #base_path = r"C:\Users\maxim\OneDrive - FH Muenster\- Masterstudium (Gebäudetechnik)\3. Semester\- Masterarbeit\Diagramme und Abbildungen\Daten\Census data"
 #base_path = r"C:\Users\mwi\OneDrive - FH Muenster\- Masterstudium (Gebäudetechnik)\3. Semester\- Masterarbeit\Diagramme und Abbildungen\Daten\Census data"
