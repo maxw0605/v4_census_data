@@ -187,6 +187,9 @@ def get_aggregated_stat_from_states(states, file_name, stat_name, method="sum"):
 
     for state in states:
         file_path = os.path.join(base_path, state, file_name)
+        st.text(f"Prüfe: {file_path}")
+        if not os.path.exists(file_path):
+            st.warning(f"FEHLT: {file_path}")
         if os.path.exists(file_path):
             try:
                 df = pd.read_csv(file_path)
