@@ -1,4 +1,4 @@
-# --- Imports
+c# --- Imports
 import os
 import io
 import pandas as pd
@@ -453,7 +453,7 @@ try:
     # --- Boxplot individuell
     col1, col2, col3 = st.columns([1, 1, 1])  # Verhältnis der Spaltenbreiten
     with col2:
-        selected_box_metric = st.selectbox("", metric_options)
+        selected_box_metric = st.selectbox("Choose a Metric", metric_options)
 
     df_box_go = pd.DataFrame(data_states(selected_box_metric, selected_states))
     df_box_go = df_box_go.dropna(subset=["value"])
