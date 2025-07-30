@@ -238,7 +238,7 @@ metrics_by_category = {
         ]
     },
     "Housing Characteristics": {
-        "file": "Housing characteristics.csv",
+        "file": "Housing Characteristics.csv",
         "metrics": [
             ("Total Housing Units", "Total number of housing units", "sum", "units", True),
             ("Average Housing Value", "Average housing value", "average", "USD", True),
