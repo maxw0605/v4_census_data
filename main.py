@@ -668,14 +668,25 @@ try:
 
     # Layout
     fig.update_layout(
+        font=common_font,
+        xaxis=dict(
+            title='region',
+            title_font=dict(family="Arial", size=16, color="black"),
+            tickfont=common_font
+        ),
+        yaxis=dict(
+            title='proportion [%]',
+            title_font=dict(family="Arial", size=16, color="black"),
+            tickfont=common_font
+        ),
+        legend=dict(font=common_font),
         barmode='group',
-        #title='Verteilung der Fassadenmaterialien nach Region (2024)',
-        xaxis_title='Region',
-        yaxis_title='Anteil in Prozent',
-        yaxis=dict(range=[0, plot_df_materials_clean.replace(["Withheld", "Not available"], 0).max().max() + 10]),
-        legend_title='Material',
         bargap=0.15,
-        bargroupgap=0.05
+        bargroupgap=0.05,
+        yaxis_range=[
+            0,
+            plot_df_materials_clean.replace(["Withheld", "Not available"], 0).max().max() + 10
+        ]
     )
 
     st.plotly_chart(fig, use_container_width=True)
