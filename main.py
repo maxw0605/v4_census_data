@@ -586,7 +586,7 @@ try:
     # --- Fassadenmaterialien
 
     st.subheader("Wall materials in the USA")
-    shared_subpath_materials = os.path("Other data", "2025-07-24 exwallmat_cust2.xlsx")
+    shared_subpath_materials = os.path.join("Other data", "2025-07-24 exwallmat_cust2.xlsx")
     
     file_path_materials = shared_subpath_materials
     xls_materials = pd.ExcelFile(file_path_materials)
@@ -680,7 +680,7 @@ try:
     st.plotly_chart(fig, use_container_width=True)
 
 
-    shared_subpath_houses = os.path("Other data", "houses")
+    shared_subpath_houses = os.path.join("Other data", "houses")
     file_path_houses = shared_subpath_houses
 
     image_files = [f for f in os.listdir(file_path_houses) if f.lower().endswith(('.png'))]
