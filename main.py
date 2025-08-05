@@ -638,7 +638,7 @@ try:
                 return "Not available"
 
     # Säubere plot_df
-    plot_df_materials_clean = plot_df_materials.applymap(clean_value)
+    plot_df_materials_clean = plot_df_materials.apply(lambda col: col.map(clean_value))
 
     fig = go.Figure()
     x = plot_df_materials_clean.index.tolist()  # Regionen
