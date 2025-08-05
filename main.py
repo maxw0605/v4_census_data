@@ -581,7 +581,142 @@ try:
     # Diagramm anzeigen
     st.subheader(f"Overview of Consumer Expenditures in Selected States")
     st.plotly_chart(fig, use_container_width=True)
+
     
+    # --- Fassadenmaterialien
+
+    st.subheader("Wall materials in the USA")
+    shared_subpath_materials = os.path("Other data", "2025-07-24 exwallmat_cust2.xlsx")
+    
+    file_path_materials = shared_subpath_materials
+    xls_materials = pd.ExcelFile(file_path_materials)
+
+    df_materials = xls_materials.parse(xls_materials.sheet_names[0], skiprows=5)
+
+    df_materials_clean = df_materials[pd.to_numeric(df_materials['Year'], errors='coerce').notnull()].copy()
+    df_materials_clean['Year'] = df_materials_clean['Year'].astype(int)
+
+
+    material_cols = {
+        'Brick': 'Brick.1',
+        'Wood': 'Wood.1',
+        'Stucco': 'Stucco.1',
+        'Vinyl siding': 'Vinylsiding.1',
+        'Fiber cement': 'Fiber cement.1',
+        'Other': 'Other2.1'
+    }
+
+    selected_year = st.selectbox("Select Year", sorted(df_materials_clean['Year'].unique(), reverse=True))
+
+    regionen = ['United States', 'Northeast', 'Midwest', 'South', 'West']
+    data_dict = {}
+
+    for region in regionen:
+        region_index = df_materials[df_materials['Total'] == region].index[0]
+        region_df = df_materials_clean[df_materials_clean.index > region_index]
+        row_selected = region_df[region_df['Year'] == selected_year].iloc[0]
+
+        material_values = {
+            material: pd.to_numeric(row_selected[col], errors='coerce') for material, col in material_cols.items()
+        }
+        data_dict[region] = material_values
+
+    plot_df_materials = pd.DataFrame(data_dict).T
+
+    def clean_value(val):
+        if pd.isna(val) or val == "(NA)":
+            return "Not available"
+        elif val == "(Z)":
+            return 0
+        elif val == "(S)":
+            return "Withheld"
+        else:
+            try:
+                return float(val)
+            except:
+                return "Not available"
+
+    # Säubere plot_df
+    plot_df_materials_clean = plot_df_materials.applymap(clean_value)
+
+    fig = go.Figure()
+    x = plot_df_materials_clean.index.tolist()  # Regionen
+
+    # Jede Materialart als eigene Balkenreihe hinzufügen
+    for material in plot_df_materials_clean.columns:
+        y_values = []
+        text_labels = []
+
+        for val in plot_df_materials_clean[material]:
+            if val in ["Withheld", "Not available"]:
+                y_values.append(0)  # Zeige keinen sichtbaren Balken
+                text_labels.append(val)
+            else:
+                y_values.append(val)
+                text_labels.append(f"{int(round(val))}%")
+
+        
+        fig.add_trace(go.Bar(
+            x=x,
+            y=plot_df_materials_clean[material],
+            name=material,
+            text=plot_df_materials_clean[material].round(0).astype(int).astype(str) + '%',
+            textposition='outside',
+            hovertemplate='%{fullData.name}<extra></extra>',
+        ))
+
+    # Layout
+    fig.update_layout(
+        barmode='group',
+        #title='Verteilung der Fassadenmaterialien nach Region (2024)',
+        xaxis_title='Region',
+        yaxis_title='Anteil in Prozent',
+        yaxis=dict(range=[0, plot_df_materials_clean.replace(["Withheld", "Not available"], 0).max().max() + 10]),
+        legend_title='Material',
+        bargap=0.15,
+        bargroupgap=0.05
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
+    shared_subpath_houses = os.path("Other data", "houses")
+    file_path_houses = shared_subpath_houses
+
+    image_files = [f for f in os.listdir(file_path_houses) if f.lower().endswith(('.png'))]
+    image_files.sort()  # optional sortieren
+
+    cols = st.columns(len(image_files))
+
+    target_height = 200
+
+    sort_order = ["Brick", "Wood", "Stucco", "Vinyl siding", "Cement"]
+    image_files = [f for f in os.listdir(file_path_houses) if f.lower().endswith(('.png'))]
+    image_names = [os.path.splitext(f)[0] for f in image_files]
+    sorted_names = sorted(
+        [name for name in image_names if name in sort_order],
+        key=lambda x: sort_order.index(x)
+    )
+
+    cols = st.columns(len(sorted_names))
+
+    for col, name in zip(cols, sorted_names):
+        file_name = name + ".png"  # ggf. Dateiendung anpassen
+        img_path = os.path.join(file_path_houses, file_name)
+
+        if os.path.exists(img_path):
+            image = Image.open(img_path)
+
+            # Höhe anpassen
+            w, h = image.size
+            new_w = int((target_height / h) * w)
+            resized = image.resize((new_w, target_height))
+
+            col.markdown(f"**{name}**")
+            col.image(resized)
+        else:
+            col.markdown(f"*Bild nicht gefunden: {file_name}*")
+
     
     
     # --- Heatmap USA (unabhängig von Auswahl)
