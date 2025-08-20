@@ -229,6 +229,7 @@ metrics_by_category = {
         "file": "Socioeconomic Characteristics.csv",
         "metrics": [
             ("Average Income per Year", "Average income", "average", "USD", True),
+            ("Single-family detached units", "Single-family detached units", "sum", "units", True),
             ("Median Household Income per Year", "Median household income", "median", "USD", True),
             ("Average Household Size", "Average household size", "average", "units_1dec", True),
             ("Percent speaking Spanish at Home", "Percent speaking Spanish at home", "average", "percent", True),
