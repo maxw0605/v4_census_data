@@ -243,6 +243,7 @@ metrics_by_category = {
             ("Average Housing Value", "Average housing value", "average", "USD", True),
             ("Median Year Structure Built", "Median year structure built", "median", "year", True),
             ("Median Monthly Owner Costs", "Median selected monthly owner cost", "average", "USD", True),
+            ("Home ownership rate", "Home ownership rate", "average", "percent", True),
             ("Vacancy Rate", "Vacancy rate", "average", "percent", True)
         ]
     },
