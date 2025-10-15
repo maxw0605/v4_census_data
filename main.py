@@ -180,7 +180,7 @@ config_svg = {
 col1, col2, col3 = st.columns([1, 3, 1])  # Verhältnis der Spaltenbreiten
 
 with col2:
-    st.plotly_chart(fig_map_selection, use_container_width=False)
+    st.plotly_chart(fig_map_selection, use_container_width=False, config=config_svg)
 
 
 
