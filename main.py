@@ -162,54 +162,25 @@ fig_map_selection.update_layout(
     margin=dict(l=0, r=0, t=40, b=0)
 )
 
+
+# -----------------------------------
+config_svg = {
+    "responsive": True,
+    "displaylogo": False,
+    "toImageButtonOptions": {
+        "format": "svg",  # <- SVG statt PNG
+        "filename": f"map_selection_frostdays_{selected_frost_day_threshold}_area_{area_threshold}",
+        "height": 800,    # optional: Exportgröße
+        "width": 1200,    # optional: Exportgröße
+        "scale": 1
+    }
+}
+# -----------------------------------
+
 col1, col2, col3 = st.columns([1, 3, 1])  # Verhältnis der Spaltenbreiten
 
 with col2:
     st.plotly_chart(fig_map_selection, use_container_width=False)
-
-
-# -----------------------------------
-
-st.divider()
-colL, colM, colR = st.columns([1, 2, 1])
-
-with colM:
-    default_name = f"map_selection_frostdays_{selected_frost_day_threshold}_area_{area_threshold}.svg"
-
-    # Versuche, SVG-Bytes zu erzeugen (benötigt 'kaleido')
-    svg_bytes = None
-    try:
-        svg_bytes = fig_map_selection.to_image(format="svg")  # oder: pio.to_image(fig_map_selection, format="svg")
-    except Exception as e:
-        st.warning("Für den SVG-Export wird 'kaleido' benötigt. Installiere es mit: `pip install -U kaleido`.")
-        st.caption(f"Technischer Hinweis: {e}")
-
-    # Download-Button (falls Export geklappt hat)
-    if svg_bytes:
-        st.download_button(
-            label="Download map as SVG",
-            data=svg_bytes,
-            file_name=default_name,
-            mime="image/svg+xml"
-        )
-
-        # Optional: Auf Festplatte speichern (Server-seitig)
-        with st.expander("Optional: SVG lokal speichern"):
-            save_dir = st.text_input("Zielordner", value=".")
-            save_name = st.text_input("Dateiname", value=default_name)
-
-            if st.button("Als SVG speichern"):
-                try:
-                    os.makedirs(save_dir, exist_ok=True)
-                    out_path = os.path.join(save_dir, save_name)
-                    with open(out_path, "wb") as f:
-                        f.write(svg_bytes)
-                    st.success(f"Gespeichert: {out_path}")
-                except Exception as err:
-                    st.error(f"Speichern fehlgeschlagen: {err}")
-
-
-# -----------------------------------
 
 
 
